@@ -40,14 +40,24 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
-
-    //First instruction to MUX
-    Mux16(a=instruction, b=ALUout, sel=instruction[15], out=out_ac);
+    Mux16(a=instruction, b=ALUout, sel=instruction[15], out=OUTac);
 
     //A-Register processing
-    Not(in=instruction[15], out=not_i);
-    Or(a=not_i, b=instruction[5], out=loadA)
-    ARegister(in=out_ac, out=a_out, load=loadA, out=[0..14]=addressM);
+    Not(in=instruction[15], out=NOTi);
+    Or(a=NOTi, b=instruction[5], out=loadA);
+    ARegister(in=OUTac, out=OUTa, load=loadA, out[0..14]=addressM);
+
+    //D-Register processing
+    DRegister(in=ALUout, out=OUTd, load=instruction[4]);
+
+    // ALU
+    ALU(x=OUTd, y=SELam, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=ALUout, out=outM, zr=zr, ng=ng);
+
+    // inM
+    Mux16(a=OUTa, b=inM, sel=instruction[12], out=SELam);
+
+    // writeM
+    And(a=instruction[15],b=instruction[3],out=writeM);
 
     // PC Jump processing
 
@@ -55,8 +65,8 @@ CHIP CPU {
     Not(in=notpos,out=pos);
 
     And(a=instruction[0],b=pos,out=j3);//j3
-    And(a=instruction[1],b=zero,out=j2);//j2
-    And(a=instruction[2],b=neg,out=j1);//j1
+    And(a=instruction[1],b=zr,out=j2);//j2
+    And(a=instruction[2],b=ng,out=j1);//j1
 
     Or(a=j1,b=j2,out=j12);
     Or(a=j12,b=j3,out=j123);
@@ -66,7 +76,7 @@ CHIP CPU {
 
 
 
-    PC(in=a_out, reset=reset, jump=jump, inc=true, out[0..14]=pc);
+    PC(in=OUTa, reset=reset, load=jump, inc=true, out[0..14]=pc);
 
 
 }
